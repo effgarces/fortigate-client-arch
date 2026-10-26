@@ -1,0 +1,15 @@
+name: CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: shellcheck files/*.sh install.sh uninstall.sh tests/run.sh
+        continue-on-error: true   # advisory
+      - run: python3 -m py_compile files/fortivpn-otp-agent.py
+      - run: tests/run.sh

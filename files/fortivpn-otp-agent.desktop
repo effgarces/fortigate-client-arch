@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=FortiVPN OTP agent
+Comment=Shows the 2FA prompt when the VPN asks for the emailed code
+Exec=/usr/local/bin/fortivpn-otp-agent
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
