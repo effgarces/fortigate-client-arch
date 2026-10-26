@@ -7,7 +7,8 @@
 # strongswan.d settings.  It does NOT touch /etc/swanctl, and it does NOT give
 # any group access to strongSwan's control socket (use sudo for swanctl).
 set -eu
-[ "$(id -u)" = 0 ] || { echo "run with sudo" >&2; exit 1; }
+# root is only required for a real install (DESTDIR is used by the tests, which run unprivileged)
+[ -n "${DESTDIR:-}" ] || [ "$(id -u)" = 0 ] || { echo "run with sudo" >&2; exit 1; }
 HERE="$(cd "$(dirname "$0")" && pwd)"
 U="${1:-${SUDO_USER:-}}"
 [ -n "$U" ] || { echo "usage: sudo ./install.sh <username>" >&2; exit 1; }
