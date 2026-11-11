@@ -3,8 +3,8 @@
 set -u
 cd "$(dirname "$0")/.."
 ROOT="$PWD"
-T="$(mktemp -d)"; PIDS=""
-cleanup() { for p in $PIDS; do kill "$p" 2>/dev/null || true; done; rm -rf "$T"; }
+T="$(mktemp -d)"; PIDS=()
+cleanup() { for p in "${PIDS[@]}"; do kill "$p" 2>/dev/null || true; done; rm -rf "$T"; }
 trap cleanup EXIT
 fail() { echo "FAIL: $*" >&2; [ -f "$T/agent.log" ] && sed 's/^/  agent: /' "$T/agent.log" >&2; exit 1; }
 pass() { echo "ok   $*"; }
@@ -23,12 +23,12 @@ STUB
 chmod +x "$T/bin/zenity"
 
 fresh() {   # new runtime dir, no agent
-  for p in $PIDS; do kill "$p" 2>/dev/null || true; done; PIDS=""
+  for p in "${PIDS[@]}"; do kill "$p" 2>/dev/null || true; done; PIDS=()
   rm -rf "$T/run" "$ZEN_LOG" "$T/agent.log"; mkdir -p "$T/run"
   mkfifo "$T/run/otp.pipe"; : > "$T/run/otp.request"
 }
 start_agent() {
-  PATH="$T/bin:$PATH" python3 -I "$ROOT/files/fortivpn-otp-agent.py" 2>"$T/agent.log" & PIDS="$PIDS $!"
+  PATH="$T/bin:$PATH" python3 -I "$ROOT/files/fortivpn-otp-agent.py" 2>"$T/agent.log" & PIDS+=("$!")
 }
 helper() { "$ROOT/files/fortigate-otp-helper.sh" 2>"$T/helper.log"; }
 
@@ -83,7 +83,7 @@ for f in usr/local/sbin/fortigate-otp-helper.sh usr/local/bin/fortivpn-otp-agent
          etc/strongswan.d/eap-gtc-otp.conf etc/strongswan.d/fortigate.conf; do
   [ -f "$D/$f" ] || fail "missing $f"
 done
-[ -x "$D/usr/local/sbin/fortigate-otp-helper.sh" ] && [ -x "$D/usr/local/bin/fortivpn-otp-agent" ] || fail "not executable"
+if [ ! -x "$D/usr/local/sbin/fortigate-otp-helper.sh" ] || [ ! -x "$D/usr/local/bin/fortivpn-otp-agent" ]; then fail "not executable"; fi
 grep -q "otp_helper = /usr/local/sbin/fortigate-otp-helper.sh" "$D/etc/strongswan.d/eap-gtc-otp.conf" || fail "helper path"
 echo "# tuned" >> "$D/etc/strongswan.d/fortigate.conf"; DESTDIR="$D" ./install.sh tester >/dev/null
 grep -q "# tuned" "$D/etc/strongswan.d/fortigate.conf" || fail "fortigate.conf overwritten"
